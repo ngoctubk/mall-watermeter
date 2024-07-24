@@ -1,0 +1,74 @@
+services:
+  # mqtt5 eclipse-mosquitto
+  mqtt5:
+    image: eclipse-mosquitto
+    container_name: mqtt5
+    restart: always
+    ports:
+      - "1883:1883" #default mqtt port
+      - "9001:9001" #default mqtt port for websockets
+    volumes:
+      - ./config:/mosquitto/config:rw
+      - ./data:/mosquitto/data:rw
+      - ./log:/mosquitto/log:rw
+
+  mqttx-web:
+    image: emqx/mqttx-web:latest
+    container_name: mqttx-web
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - mqtt5
+      
+  postgres:
+    image: postgres
+    container_name: postgres
+    restart: always
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - local_pgdata:/var/lib/postgresql/data
+      
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pgadmin4_container
+    restart: always
+    ports:
+      - "8888:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: postgres@domain-name.com
+      PGADMIN_DEFAULT_PASSWORD: postgres
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+
+  sensor-jobs:
+    image: ngoctubk/sensorjobs:latest
+    container_name: sensor-jobs
+    restart: always
+    environment:
+      TZ: Asia/Bangkok
+      ConnectionStrings__MeterManagement: "Host=postgres;Database=metermanagement;Username=postgres;Password=postgres"
+      Quartz__LostMessageCheckJob: "0 0 * ? * * *"
+      Quartz__SensorPingJob: "0 30 * ? * * *"
+      MqttSettings__Server: mqtt5
+      MqttSettings__Port: 1883
+      MqttSettings__Username: mqtt
+      MqttSettings__Password: mqtt
+      MqttSettings__GasTopic: "gas/+/main/json"
+      MqttSettings__WaterTopic: "water/+/main/json"
+      MqttSettings__GasClientId: GasClientId
+      MqttSettings__WaterClientId: WaterClientId
+
+      
+# volumes for mapping data,config and log
+volumes:
+  local_pgdata:
+  pgadmin-data:
+
+networks:
+  default:
+    name: mqtt5-network-1

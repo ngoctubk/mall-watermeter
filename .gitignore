@@ -396,3 +396,31 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+
+# Remove if certain files are committed on purpose
+src/firmware/.pio/
+src/firmware/.vscode/
+src/firmware/.code-workspace
+src/firmware/sd-card/htm./.vscode/
+src/firmware/code/build
+src/firmware/code/.helper
+src/firmware/sd-card/html/debug/
+src/firmware/firmware/
+src/firmware/version.txt
+src/firmware/dist/
+src/firmware/dist_release/
+src/firmware/dist_old_ota
+src/firmware/CMakeLists.txt.user
+src/firmware/CMakeCache.txt
+src/firmware/CMakeFiles
+src/firmware/CMakeScripts
+src/firmware/Makefile
+src/firmware/cmake_install.cmake
+src/firmware/install_manifest.txt
+src/firmware/compile_commands.json
+src/firmware/CTestTestfile.cmake
+src/firmware/_deps
+src/firmware/code/edgeAI.code-workspace
+src/firmware/.DS_Store
+src/firmware/tools/parameter-tooltip-generator/html
+src/firmware/tools/parameter-tooltip-generator/AI-on-the-edge-device-docs
