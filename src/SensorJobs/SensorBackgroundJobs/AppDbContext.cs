@@ -16,6 +16,8 @@ namespace SensorBackgroundJobs
         public DbSet<StallWaterInvoice> StallWaterInvoices { get; set; }
         public DbSet<StallGasInvoice> StallGasInvoices { get; set; }
         public DbSet<MeterError> MeterErrors { get; set; }
+        public DbSet<NoIncomingMessageWarning> NoIncomingMessageWarnings { get; set; }
+        public DbSet<CannotConnectWarning> CannotConnectWarnings { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

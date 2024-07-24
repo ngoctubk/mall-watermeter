@@ -54,6 +54,7 @@ services:
       ConnectionStrings__MeterManagement: "Host=postgres;Database=metermanagement;Username=postgres;Password=postgres"
       Quartz__LostMessageCheckJob: "0 0 * ? * * *"
       Quartz__SensorPingJob: "0 30 * ? * * *"
+      Quartz__RemoveOldWarningsJobs: "0 45 * ? * * *"
       MqttSettings__Server: mqtt5
       MqttSettings__Port: 1883
       MqttSettings__Username: mqtt

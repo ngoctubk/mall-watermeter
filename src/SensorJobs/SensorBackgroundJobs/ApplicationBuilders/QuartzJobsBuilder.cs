@@ -14,6 +14,7 @@ namespace SensorBackgroundJobs.ApplicationBuilders
                 q.AddJobListener<TrackNextJobListener>();
                 q.AddJobAndTrigger<LostMessageCheckJob>(builder.Configuration);
                 q.AddJobAndTrigger<SensorPingJob>(builder.Configuration);
+                q.AddJobAndTrigger<RemoveOldWarningsJobs>(builder.Configuration);
             });
 
             builder.Services.AddQuartzHostedService(options =>

@@ -13,7 +13,7 @@ namespace SensorBackgroundJobs.Jobs
         public async Task Execute(IJobExecutionContext context)
         {
             CommonSettings commonSettings = commonSettingsOption.Value;
-            DateTime currentDate = DateTime.UtcNow.AddHours(commonSettings.LostMessageHours);
+            DateTime warningDate = DateTime.UtcNow.AddHours(commonSettings.LostMessageHours);
 
             var waterSensors = dbContext.Sensors.AsNoTracking()
                     .Include(s => s.Meter)
@@ -21,7 +21,7 @@ namespace SensorBackgroundJobs.Jobs
                     .Where(s => s.IsActive
                                     && s.MeterId != null
                                     && s.Meter.MeterType == "water"
-                                    && (!s.WaterMeters.Any() || s.WaterMeters.Max(m => m.ToTimestamp) < currentDate))
+                                    && (!s.WaterMeters.Any() || s.WaterMeters.Max(m => m.ToTimestamp) < warningDate))
                     .Select(s => new
                     {
                         s.Id,
@@ -36,7 +36,7 @@ namespace SensorBackgroundJobs.Jobs
                     .Where(s => s.IsActive
                                     && s.MeterId != null
                                     && s.Meter.MeterType == "gas"
-                                    && (!s.GasMeters.Any() || s.GasMeters.Max(m => m.ToTimestamp) < currentDate))
+                                    && (!s.GasMeters.Any() || s.GasMeters.Max(m => m.ToTimestamp) < warningDate))
                     .Select(s => new
                     {
                         s.Id,
