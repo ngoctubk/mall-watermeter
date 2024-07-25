@@ -15,6 +15,7 @@ namespace SensorBackgroundJobs.Models
         public Guid? MeterId { get; set; }
         public Meter? Meter { get; set; }
         public required string IpAddress { get; set; }
+        public string? SnNumber { get; set; }
         public ICollection<WaterMeter> WaterMeters { get; } = [];
         public ICollection<GasMeter> GasMeters { get; } = [];
     }
@@ -38,6 +39,9 @@ namespace SensorBackgroundJobs.Models
             builder.Property(a => a.IpAddress).IsRequired();
             builder.Property(a => a.IpAddress).HasMaxLength(100);
             builder.HasIndex(a => a.IpAddress).IsUnique();
+
+            builder.Property(a => a.SnNumber).HasMaxLength(300);
+            builder.HasIndex(a => a.SnNumber);
 
             builder.HasIndex(a => a.CreatedDate);
 

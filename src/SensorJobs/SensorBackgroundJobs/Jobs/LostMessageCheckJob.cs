@@ -20,7 +20,7 @@ namespace SensorBackgroundJobs.Jobs
                     .Include(s => s.WaterMeters)
                     .Where(s => s.IsActive
                                     && s.MeterId != null
-                                    && s.Meter.MeterType == "water"
+                                    && s.Meter.MeterType == 1 // water
                                     && (!s.WaterMeters.Any() || s.WaterMeters.Max(m => m.ToTimestamp) < warningDate))
                     .Select(s => new
                     {
@@ -35,7 +35,7 @@ namespace SensorBackgroundJobs.Jobs
                     .Include(s => s.GasMeters)
                     .Where(s => s.IsActive
                                     && s.MeterId != null
-                                    && s.Meter.MeterType == "gas"
+                                    && s.Meter.MeterType == 2 // gas
                                     && (!s.GasMeters.Any() || s.GasMeters.Max(m => m.ToTimestamp) < warningDate))
                     .Select(s => new
                     {
