@@ -31,6 +31,7 @@ try
 
     builder.AddQuartzJobs();
 
+    AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
     builder.Services.AddDbContextPool<AppDbContext>(options => options.
                                                     UseNpgsql(builder.Configuration.GetConnectionString("MeterManagement")));
 

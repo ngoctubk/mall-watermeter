@@ -138,7 +138,7 @@ namespace SensorBackgroundJobs.Jobs
                     MeterId = sensorInformation.MeterId,
                     Payload = sensorInformation.Payload,
                     Reason = reason,
-                    CreatedDate = DateTime.UtcNow
+                    CreatedDate = DateTime.Now
                 };
                 dbContext.Add(meterError);
                 await dbContext.SaveChangesAsync();
@@ -159,7 +159,7 @@ namespace SensorBackgroundJobs.Jobs
             GasMeter? gasMeter = await dbContext.GasMeters.FirstOrDefaultAsync(m => m.SensorId == sensorInformation.SensorId
                                                                                                             && m.MeterId == sensorInformation.MeterId
                                                                                                             && m.Value == meter.Value);
-            var currentDate = DateTime.UtcNow;
+            var currentDate = DateTime.Now;
             if (gasMeter is null)
             {
                 gasMeter = new GasMeter()
@@ -200,7 +200,7 @@ namespace SensorBackgroundJobs.Jobs
                 MeterId = sensorInformation.MeterId,
                 Payload = sensorInformation.Payload,
                 Reason = "MessageValueIsNotCorrect",
-                CreatedDate = DateTime.UtcNow
+                CreatedDate = DateTime.Now
             };
             dbContext.Add(meterError);
             await dbContext.SaveChangesAsync();
@@ -216,7 +216,7 @@ namespace SensorBackgroundJobs.Jobs
                 MeterId = sensorInformation.MeterId,
                 Payload = sensorInformation.Payload,
                 Reason = "MeterFromPayloadIsNulll",
-                CreatedDate = DateTime.UtcNow
+                CreatedDate = DateTime.Now
             };
             dbContext.Add(meterError);
             await dbContext.SaveChangesAsync();
@@ -232,7 +232,7 @@ namespace SensorBackgroundJobs.Jobs
                 MeterId = sensorInformation.MeterId,
                 Payload = sensorInformation.Payload,
                 Reason = "SensorOrMeterDoesNotExistOrActive",
-                CreatedDate = DateTime.UtcNow
+                CreatedDate = DateTime.Now
             };
             dbContext.Add(meterError);
             await dbContext.SaveChangesAsync();

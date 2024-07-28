@@ -33,7 +33,7 @@ namespace SensorBackgroundJobs.Jobs
                         })
                         .ToList();
 
-                DateTime now = DateTime.UtcNow;
+                DateTime now = DateTime.Now;
                 foreach (var sensor in sensors)
                 {
                     PingReply reply = await myPing.SendPingAsync(sensor.IpAddress, timeout);

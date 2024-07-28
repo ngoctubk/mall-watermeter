@@ -11,7 +11,7 @@ namespace SensorBackgroundJobs.Jobs
         public async Task Execute(IJobExecutionContext context)
         {
             CommonSettings commonSettings = commonSettingsOption.Value;
-            DateTime oldErrorsAndWarningDate = DateTime.UtcNow.AddMonths(commonSettings.OldErrorsAndWarningsInMonths);
+            DateTime oldErrorsAndWarningDate = DateTime.Now.AddMonths(commonSettings.OldErrorsAndWarningsInMonths);
 
             await dbContext.MeterErrors.Where(e => e.CreatedDate < oldErrorsAndWarningDate)
                                         .ExecuteDeleteAsync();

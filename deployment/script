@@ -1,12 +1,12 @@
-pg_dump -U postgres metermanagement > backup.sql
+pg_dump -U postgres metermanagement > backup_25_07.sql
 
 psql -U postgres
 CREATE DATABASE metermanagement2;
 psql -U postgres -d metermanagement2 -f backup.sql > import_test.log
 
 
-docker build -t ngoctubk/sensorjobs:0.5 -f .\SensorBackgroundJobs\Dockerfile .
+docker build -t ngoctubk/sensorjobs:0.7 -f .\SensorBackgroundJobs\Dockerfile .
 
-docker image tag 6badb971cc19 ngoctubk/sensorjobs:latest
+docker image tag 3d774bb174a9 ngoctubk/sensorjobs:latest
 
 docker image push ngoctubk/sensorjobs:latest

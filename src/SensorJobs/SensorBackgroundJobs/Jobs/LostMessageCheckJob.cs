@@ -13,7 +13,7 @@ namespace SensorBackgroundJobs.Jobs
         public async Task Execute(IJobExecutionContext context)
         {
             CommonSettings commonSettings = commonSettingsOption.Value;
-            DateTime warningDate = DateTime.UtcNow.AddHours(commonSettings.LostMessageHours);
+            DateTime warningDate = DateTime.Now.AddHours(commonSettings.LostMessageHours);
 
             var waterSensors = dbContext.Sensors.AsNoTracking()
                     .Include(s => s.Meter)
@@ -47,7 +47,7 @@ namespace SensorBackgroundJobs.Jobs
 
             var sensors = waterSensors.Concat(gasSensors);
 
-            DateTime now = DateTime.UtcNow;
+            DateTime now = DateTime.Now;
             foreach (var sensor in sensors)
             {
                 NoIncomingMessageWarning noIncomingMessageWarning = new()
