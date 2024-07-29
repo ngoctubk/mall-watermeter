@@ -34,6 +34,7 @@ namespace SensorBackgroundJobs.Models
                 .WithMany()
                 .HasForeignKey(a => a.MeterId);
 
+            builder.Property(a => a.CreatedDate).HasColumnType("timestamp without time zone");
             builder.HasIndex(a => a.CreatedDate);
         }
     }

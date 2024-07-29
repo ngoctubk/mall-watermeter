@@ -43,6 +43,7 @@ namespace SensorBackgroundJobs.Models
             builder.Property(a => a.SnNumber).HasMaxLength(300);
             builder.HasIndex(a => a.SnNumber);
 
+            builder.Property(a => a.CreatedDate).HasColumnType("timestamp without time zone");
             builder.HasIndex(a => a.CreatedDate);
 
             builder

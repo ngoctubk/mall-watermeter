@@ -121,14 +121,9 @@ namespace SensorBackgroundJobs.Jobs
 
         private static async Task InsertMeterErrorIfHasErrorMessage(AppDbContext dbContext, MqttMeter meter, SensorInformation sensorInformation)
         {
-            DateTime beginDate = new DateTime(2010, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-            if (!meter.Error.Equals("no error") || meter.Timestamp < beginDate)
+            if (!meter.Error.Equals("no error"))
             {
-                string reason = "SensorMessageHasError-";
-                if (!meter.Error.Equals("no error"))
-                    reason = reason + "HasError";
-                else
-                    reason = reason + "SmallTimestamp";
+                string reason = "SensorMessageHasError";
 
                 MeterError meterError = new()
                 {
@@ -162,6 +157,15 @@ namespace SensorBackgroundJobs.Jobs
             var currentDate = DateTime.Now;
             if (gasMeter is null)
             {
+                GasMeter? lastGasMeter = await dbContext.GasMeters.Where(m => m.SensorId == sensorInformation.SensorId
+                                                                                            && m.MeterId == sensorInformation.MeterId)
+                                                                        .OrderByDescending(w => w.Value)
+                                                                        .FirstOrDefaultAsync();
+                if (lastGasMeter is not null && lastGasMeter.ToTimestamp <= currentDate.AddMinutes(-15))
+                {
+                    lastGasMeter.ToTimestamp = currentDate.AddMinutes(-5);
+                }
+
                 gasMeter = new GasMeter()
                 {
                     StallId = sensorInformation.StallId,
@@ -240,16 +244,24 @@ namespace SensorBackgroundJobs.Jobs
 
         private static MqttMeter? GetMeterFromPayload(MqttApplicationMessageReceivedEventArgs e)
         {
-            var options = new JsonSerializerOptions
+            try
             {
-                PropertyNameCaseInsensitive = true,
-                NumberHandling = System.Text.Json.Serialization.JsonNumberHandling.AllowReadingFromString
-            };
-            options.Converters.Add(new DateTimeJsonConverterUsingDateTimeParse());
-            options.Converters.Add(new EmptyStringToDoubleConverter());
 
-            var meter = JsonSerializer.Deserialize<MqttMeter>(e.ApplicationMessage.PayloadSegment.AsSpan(), options);
-            return meter;
+                var options = new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true,
+                    NumberHandling = System.Text.Json.Serialization.JsonNumberHandling.AllowReadingFromString
+                };
+                options.Converters.Add(new DateTimeJsonConverterUsingDateTimeParse());
+                options.Converters.Add(new EmptyStringToDoubleConverter());
+
+                var meter = JsonSerializer.Deserialize<MqttMeter>(e.ApplicationMessage.PayloadSegment.AsSpan(), options);
+                return meter;
+            }
+            catch (Exception ex)
+            {
+                return null;
+            }
         }
 
         private static async Task<SensorInformation> GetSensorInformation(AppDbContext dbContext, string sensorCode)

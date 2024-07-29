@@ -25,7 +25,7 @@ namespace SensorBackgroundJobs.Models
             builder.Property(a => a.Id).ValueGeneratedOnAdd();
 
             builder.Property(a => a.Topic).HasMaxLength(100);
-            builder.Property(a => a.Payload).HasMaxLength(200);
+            builder.Property(a => a.Payload).HasMaxLength(500);
             builder.Property(a => a.Reason).HasMaxLength(100);
 
 
@@ -45,6 +45,8 @@ namespace SensorBackgroundJobs.Models
                 .IsRequired(false);
 
             builder.HasIndex(a => a.Reason);
+
+            builder.Property(a => a.CreatedDate).HasColumnType("timestamp without time zone");
             builder.HasIndex(a => a.CreatedDate);
         }
     }

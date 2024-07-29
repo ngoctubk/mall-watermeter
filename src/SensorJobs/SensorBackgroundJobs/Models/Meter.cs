@@ -33,6 +33,7 @@ namespace SensorBackgroundJobs.Models
             builder.Property(a => a.MeterType).IsRequired();
             builder.HasIndex(a => a.MeterType);
 
+            builder.Property(a => a.CreatedDate).HasColumnType("timestamp without time zone");
             builder.HasIndex(a => a.CreatedDate);
         }
     }
