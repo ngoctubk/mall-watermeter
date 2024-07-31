@@ -55,18 +55,19 @@ services:
       Quartz__LostMessageCheckJob: "0 0 * ? * * *"
       Quartz__SensorPingJob: "0 30 * ? * * *"
       Quartz__RemoveOldWarningsJobs: "0 45 * ? * * *"
+      MqttSettings__GasClientId: GasClientId
+      MqttSettings__WaterClientId: WaterClientId
       MqttSettings__Server: mqtt5
       MqttSettings__Port: 1883
       MqttSettings__Username: mqtt
       MqttSettings__Password: mqtt
       MqttSettings__GasTopic: "gas/+/main/json"
       MqttSettings__WaterTopic: "water/+/main/json"
-      MqttSettings__GasClientId: GasClientId
-      MqttSettings__WaterClientId: WaterClientId
       CommonSettings__LostMessageHours: -4
       CommonSettings__OldErrorsAndWarningsInMonths: -3
       CommonSettings__PingTimeout: 5000
-
+      CommonSettings__MaxTimeToUpdateLastMeterInMinutes: -35
+      CommonSettings__TimeDistanceToUpdateInMinutes: -10
 
       
 # volumes for mapping data,config and log

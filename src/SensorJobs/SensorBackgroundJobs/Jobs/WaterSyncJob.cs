@@ -11,12 +11,13 @@ using Microsoft.EntityFrameworkCore;
 
 namespace SensorBackgroundJobs.Jobs
 {
-    public partial class WaterSyncJob(ILogger<WaterSyncJob> logger,
+    public class WaterSyncJob(ILogger<WaterSyncJob> logger,
                                 IOptions<MqttSettings> optionMqttSettings,
+                                IOptions<CommonSettings> commonSettingsOption,
                                 IServiceScopeFactory scopeFactory) : BackgroundService
     {
         private readonly MqttSettings _mqttSettings = optionMqttSettings.Value;
-        private readonly ILogger<WaterSyncJob> _logger = logger;
+        private readonly CommonSettings _commonSettings = commonSettingsOption.Value;
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
@@ -32,7 +33,7 @@ namespace SensorBackgroundJobs.Jobs
                                     .WithCleanSession()
                                     .WithProtocolVersion(MqttProtocolVersion.V500)
                                     .Build();
-            LogInformation("Connecting to MQTT Broker...");
+            logger.LogInformation("Connecting to MQTT Broker...");
             _ = Task.Run(async () =>
             {
                 // User proper cancellation and no while(true).
@@ -44,19 +45,19 @@ namespace SensorBackgroundJobs.Jobs
                         if (!await mqttClient.TryPingAsync())
                         {
                             await mqttClient.ConnectAsync(mqttClientOptions, CancellationToken.None);
-                            LogInformation("The MQTT client is connected.");
+                            logger.LogInformation("The MQTT client is connected.");
                             var mqttSubscribeOptions = mqttFactory.CreateSubscribeOptionsBuilder()
                                 .WithTopicFilter(f => f.WithTopic(_mqttSettings.WaterTopic))
                                 .Build();
                             var response = await mqttClient.SubscribeAsync(mqttSubscribeOptions, CancellationToken.None);
-                            LogInformation("MQTT client subscribed to topic.");
+                            logger.LogInformation("MQTT client subscribed to topic.");
                             // Subscribe to topics when session is clean etc.
                         }
                     }
                     catch (Exception ex)
                     {
                         // Handle the exception properly (logging etc.).
-                        LogException(ex, "Exception");
+                        logger.LogError(ex, "Exception");
                     }
                     finally
                     {
@@ -67,8 +68,8 @@ namespace SensorBackgroundJobs.Jobs
             }, stoppingToken);
             await Task.Delay(Timeout.InfiniteTimeSpan, stoppingToken);
         }
-
-        public Func<MqttApplicationMessageReceivedEventArgs, Task> HandleMessageAsync = async e =>
+        
+        public async Task HandleMessageAsync(MqttApplicationMessageReceivedEventArgs e)
         {
             try
             {
@@ -114,7 +115,7 @@ namespace SensorBackgroundJobs.Jobs
             {
                 logger.LogError(ex, "Exception");
             }
-        };
+        }
 
         private static async Task InsertMeterErrorIfHasErrorMessage(AppDbContext dbContext, MqttMeter meter, SensorInformation sensorInformation)
         {
@@ -146,7 +147,7 @@ namespace SensorBackgroundJobs.Jobs
             return meterIsSmallerThanMax;
         }
 
-        private static async Task InsertWaterMeter(AppDbContext dbContext, MqttMeter meter, SensorInformation sensorInformation)
+        private async Task InsertWaterMeter(AppDbContext dbContext, MqttMeter meter, SensorInformation sensorInformation)
         {
             WaterMeter? waterMeter = await dbContext.WaterMeters.FirstOrDefaultAsync(m => m.SensorId == sensorInformation.SensorId
                                                                                                             && m.MeterId == sensorInformation.MeterId
@@ -158,9 +159,12 @@ namespace SensorBackgroundJobs.Jobs
                                                                                                             && m.MeterId == sensorInformation.MeterId)
                                                                         .OrderByDescending(w => w.Value)
                                                                         .FirstOrDefaultAsync();
-                if (lastWaterMeter is not null && lastWaterMeter.ToTimestamp <= currentDate.AddMinutes(-15))
+
+                double maxTimeToUpdateLastMeterInMinutes = _commonSettings.MaxTimeToUpdateLastMeterInMinutes;
+                double timeDistanceToUpdateInMinutes = _commonSettings.TimeDistanceToUpdateInMinutes;
+                if (lastWaterMeter is not null && lastWaterMeter.ToTimestamp <= currentDate.AddMinutes(maxTimeToUpdateLastMeterInMinutes))
                 {
-                    lastWaterMeter.ToTimestamp = currentDate.AddMinutes(-5);
+                    lastWaterMeter.ToTimestamp = currentDate.AddMinutes(timeDistanceToUpdateInMinutes);
                 }
 
                 waterMeter = new WaterMeter()
@@ -303,10 +307,5 @@ namespace SensorBackgroundJobs.Jobs
             return sensorInformation;
         }
 
-        [LoggerMessage(Level = LogLevel.Information, Message = "{Message}")]
-        public partial void LogInformation(string message);
-
-        [LoggerMessage(Level = LogLevel.Error, Message = "{Message}")]
-        public partial void LogException(Exception ex, string message);
     }
 }
