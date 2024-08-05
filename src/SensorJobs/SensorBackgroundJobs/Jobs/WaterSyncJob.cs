@@ -99,15 +99,17 @@ namespace SensorBackgroundJobs.Jobs
                     return;
                 }
 
-                await InsertMeterErrorIfHasErrorMessage(context, meter, sensorInformation);
-
-                bool isValueIncorrect = await IsValueIncorrect(context, meter, sensorInformation);
-
-                if (isValueIncorrect)
-                {
-                    await InsertValueIsNotCorrectError(context, sensorInformation);
+                var insertMeterError = await InsertMeterErrorIfHasErrorMessage(context, meter, sensorInformation);
+                if (insertMeterError)
                     return;
-                }
+
+                //bool isValueIncorrect = await IsValueIncorrect(context, meter, sensorInformation);
+
+                //if (isValueIncorrect)
+                //{
+                //    await InsertValueIsNotCorrectError(context, sensorInformation);
+                //    return;
+                //}
 
                 await InsertWaterMeter(context, meter, sensorInformation);
             }
@@ -117,7 +119,7 @@ namespace SensorBackgroundJobs.Jobs
             }
         }
 
-        private static async Task InsertMeterErrorIfHasErrorMessage(AppDbContext dbContext, MqttMeter meter, SensorInformation sensorInformation)
+        private static async Task<bool> InsertMeterErrorIfHasErrorMessage(AppDbContext dbContext, MqttMeter meter, SensorInformation sensorInformation)
         {
             if (!meter.Error.Equals("no error"))
             {
@@ -135,7 +137,11 @@ namespace SensorBackgroundJobs.Jobs
                 };
                 dbContext.Add(meterError);
                 await dbContext.SaveChangesAsync();
+
+                return true;
             }
+
+            return false;
         }
 
         private static async Task<bool> IsValueIncorrect(AppDbContext dbContext, MqttMeter meter, SensorInformation sensorInformation)
@@ -220,7 +226,7 @@ namespace SensorBackgroundJobs.Jobs
                 SensorId = sensorInformation.SensorId,
                 MeterId = sensorInformation.MeterId,
                 Payload = sensorInformation.Payload,
-                Reason = "MeterFromPayloadIsNulll",
+                Reason = "CannotDeserializePayload",
                 CreatedDate = DateTime.Now
             };
             dbContext.Add(meterError);
