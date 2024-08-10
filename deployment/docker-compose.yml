@@ -66,8 +66,6 @@ services:
       CommonSettings__LostMessageHours: -4
       CommonSettings__OldErrorsAndWarningsInMonths: -3
       CommonSettings__PingTimeout: 5000
-      CommonSettings__MaxTimeToUpdateLastMeterInMinutes: -35
-      CommonSettings__TimeDistanceToUpdateInMinutes: -10
 
       
 # volumes for mapping data,config and log

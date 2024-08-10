@@ -165,14 +165,11 @@ namespace SensorBackgroundJobs.Jobs
             {
                 GasMeter? lastGasMeter = await dbContext.GasMeters.Where(m => m.SensorId == sensorInformation.SensorId
                                                                                             && m.MeterId == sensorInformation.MeterId)
-                                                                        .OrderByDescending(w => w.Value)
+                                                                        .OrderByDescending(w => w.ToTimestamp)
                                                                         .FirstOrDefaultAsync();
-
-                double maxTimeToUpdateLastMeterInMinutes = _commonSettings.MaxTimeToUpdateLastMeterInMinutes;
-                double timeDistanceToUpdateInMinutes = _commonSettings.TimeDistanceToUpdateInMinutes;
-                if (lastGasMeter is not null && lastGasMeter.ToTimestamp <= currentDate.AddMinutes(maxTimeToUpdateLastMeterInMinutes))
+                if (lastGasMeter is not null)
                 {
-                    lastGasMeter.ToTimestamp = currentDate.AddMinutes(timeDistanceToUpdateInMinutes);
+                    lastGasMeter.ToTimestamp = currentDate;
                 }
 
                 gasMeter = new GasMeter()

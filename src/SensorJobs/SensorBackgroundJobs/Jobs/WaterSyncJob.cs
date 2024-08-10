@@ -161,16 +161,14 @@ namespace SensorBackgroundJobs.Jobs
             var currentDate = DateTime.Now;
             if (waterMeter is null)
             {
+                // Add new
                 WaterMeter? lastWaterMeter = await dbContext.WaterMeters.Where(m => m.SensorId == sensorInformation.SensorId
                                                                                                             && m.MeterId == sensorInformation.MeterId)
-                                                                        .OrderByDescending(w => w.Value)
+                                                                        .OrderByDescending(w => w.ToTimestamp)
                                                                         .FirstOrDefaultAsync();
-
-                double maxTimeToUpdateLastMeterInMinutes = _commonSettings.MaxTimeToUpdateLastMeterInMinutes;
-                double timeDistanceToUpdateInMinutes = _commonSettings.TimeDistanceToUpdateInMinutes;
-                if (lastWaterMeter is not null && lastWaterMeter.ToTimestamp <= currentDate.AddMinutes(maxTimeToUpdateLastMeterInMinutes))
+                if (lastWaterMeter is not null)
                 {
-                    lastWaterMeter.ToTimestamp = currentDate.AddMinutes(timeDistanceToUpdateInMinutes);
+                    lastWaterMeter.ToTimestamp = currentDate;
                 }
 
                 waterMeter = new WaterMeter()
@@ -193,6 +191,7 @@ namespace SensorBackgroundJobs.Jobs
             }
             else
             {
+                // Update -> only update ToTimestamp
                 waterMeter.StallId = sensorInformation.StallId;
                 waterMeter.StallCode = sensorInformation.StallCode;
                 waterMeter.ToTimestamp = currentDate;
