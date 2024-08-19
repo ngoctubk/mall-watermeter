@@ -166,6 +166,7 @@ namespace SensorBackgroundJobs.Jobs
                 GasMeter? lastGasMeter = await dbContext.GasMeters.Where(m => m.SensorId == sensorInformation.SensorId
                                                                                             && m.MeterId == sensorInformation.MeterId)
                                                                         .OrderByDescending(w => w.ToTimestamp)
+                                                                        .ThenByDescending(w => w.FromTimestamp)
                                                                         .FirstOrDefaultAsync();
                 if (lastGasMeter is not null)
                 {

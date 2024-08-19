@@ -1,4 +1,4 @@
-pg_dump -U postgres metermanagement > backup_28_07.sql
+pg_dump -U postgres metermanagement > backup_14_08.sql
 
 psql -U postgres
 CREATE DATABASE metermanagement2;

@@ -165,6 +165,7 @@ namespace SensorBackgroundJobs.Jobs
                 WaterMeter? lastWaterMeter = await dbContext.WaterMeters.Where(m => m.SensorId == sensorInformation.SensorId
                                                                                                             && m.MeterId == sensorInformation.MeterId)
                                                                         .OrderByDescending(w => w.ToTimestamp)
+                                                                        .ThenByDescending(w => w.FromTimestamp)
                                                                         .FirstOrDefaultAsync();
                 if (lastWaterMeter is not null)
                 {
