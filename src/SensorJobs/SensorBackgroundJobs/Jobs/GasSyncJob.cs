@@ -155,6 +155,24 @@ namespace SensorBackgroundJobs.Jobs
             return meterIsSmallerThanMax;
         }
 
+        private static async Task InsertMeterCanNotGetPreviousValue(AppDbContext dbContext, MqttMeter meter, SensorInformation sensorInformation)
+        {
+            string reason = "CanNotGetPreviousValue";
+
+            MeterError meterError = new()
+            {
+                Topic = sensorInformation.Topic,
+                StallId = sensorInformation.StallId,
+                SensorId = sensorInformation.SensorId,
+                MeterId = sensorInformation.MeterId,
+                Payload = sensorInformation.Payload,
+                Reason = reason,
+                CreatedDate = DateTime.Now
+            };
+            dbContext.Add(meterError);
+            await dbContext.SaveChangesAsync();
+        }
+
         private async Task InsertGasMeter(AppDbContext dbContext, MqttMeter meter, SensorInformation sensorInformation)
         {
             GasMeter? gasMeter = await dbContext.GasMeters.FirstOrDefaultAsync(m => m.SensorId == sensorInformation.SensorId
@@ -168,7 +186,17 @@ namespace SensorBackgroundJobs.Jobs
                                                                         .OrderByDescending(w => w.ToTimestamp)
                                                                         .ThenByDescending(w => w.FromTimestamp)
                                                                         .FirstOrDefaultAsync();
-                if (lastGasMeter is not null)
+                if (lastGasMeter is null)
+                {
+                    var exists = await dbContext.GasMeters.AnyAsync(m => m.SensorId == sensorInformation.SensorId
+                                                                                            && m.MeterId == sensorInformation.MeterId);
+                    if (exists)
+                    {
+                        await InsertMeterCanNotGetPreviousValue(dbContext, meter, sensorInformation);
+                        return;
+                    }
+                }
+                else
                 {
                     lastGasMeter.ToTimestamp = currentDate;
                 }

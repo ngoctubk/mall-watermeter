@@ -5,7 +5,7 @@ CREATE DATABASE metermanagement2;
 psql -U postgres -d metermanagement2 -f backup.sql > import_test.log
 
 
-docker build -t ngoctubk/sensorjobs:1.2 -f .\SensorBackgroundJobs\Dockerfile .
+docker build -t ngoctubk/sensorjobs:1.6 -f .\SensorBackgroundJobs\Dockerfile .
 
 docker image tag 9a3c16225772 ngoctubk/sensorjobs:latest
 

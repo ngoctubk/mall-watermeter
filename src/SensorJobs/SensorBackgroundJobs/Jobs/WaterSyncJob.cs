@@ -68,7 +68,7 @@ namespace SensorBackgroundJobs.Jobs
             }, stoppingToken);
             await Task.Delay(Timeout.InfiniteTimeSpan, stoppingToken);
         }
-        
+
         public async Task HandleMessageAsync(MqttApplicationMessageReceivedEventArgs e)
         {
             try
@@ -84,7 +84,7 @@ namespace SensorBackgroundJobs.Jobs
                 var sensorInformation = await GetSensorInformation(context, sensorCode);
                 sensorInformation.Topic = topic;
                 sensorInformation.Payload = payload;
-                
+
                 if (!sensorInformation.IsExisted || !sensorInformation.IsActive)
                 {
                     await InsertSensorIsNotExistedError(context, sensorInformation);
@@ -144,6 +144,24 @@ namespace SensorBackgroundJobs.Jobs
             return false;
         }
 
+        private static async Task InsertMeterCanNotGetPreviousValue(AppDbContext dbContext, MqttMeter meter, SensorInformation sensorInformation)
+        {
+            string reason = "CanNotGetPreviousValue";
+
+            MeterError meterError = new()
+            {
+                Topic = sensorInformation.Topic,
+                StallId = sensorInformation.StallId,
+                SensorId = sensorInformation.SensorId,
+                MeterId = sensorInformation.MeterId,
+                Payload = sensorInformation.Payload,
+                Reason = reason,
+                CreatedDate = DateTime.Now
+            };
+            dbContext.Add(meterError);
+            await dbContext.SaveChangesAsync();
+        }
+
         private static async Task<bool> IsValueIncorrect(AppDbContext dbContext, MqttMeter meter, SensorInformation sensorInformation)
         {
             bool meterIsSmallerThanMax = await dbContext.WaterMeters.AsNoTracking()
@@ -163,11 +181,21 @@ namespace SensorBackgroundJobs.Jobs
             {
                 // Add new
                 WaterMeter? lastWaterMeter = await dbContext.WaterMeters.Where(m => m.SensorId == sensorInformation.SensorId
-                                                                                                            && m.MeterId == sensorInformation.MeterId)
+                                                                                                    && m.MeterId == sensorInformation.MeterId)
                                                                         .OrderByDescending(w => w.ToTimestamp)
                                                                         .ThenByDescending(w => w.FromTimestamp)
                                                                         .FirstOrDefaultAsync();
-                if (lastWaterMeter is not null)
+                if (lastWaterMeter is null)
+                {
+                    var exists = await dbContext.WaterMeters.AnyAsync(m => m.SensorId == sensorInformation.SensorId
+                                                                                                && m.MeterId == sensorInformation.MeterId);
+                    if (exists)
+                    {
+                        await InsertMeterCanNotGetPreviousValue(dbContext, meter, sensorInformation);
+                        return;
+                    }
+                }
+                else
                 {
                     lastWaterMeter.ToTimestamp = currentDate;
                 }
