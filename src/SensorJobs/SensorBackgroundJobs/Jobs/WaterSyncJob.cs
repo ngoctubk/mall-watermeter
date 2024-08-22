@@ -173,60 +173,84 @@ namespace SensorBackgroundJobs.Jobs
 
         private async Task InsertWaterMeter(AppDbContext dbContext, MqttMeter meter, SensorInformation sensorInformation)
         {
-            WaterMeter? waterMeter = await dbContext.WaterMeters.FirstOrDefaultAsync(m => m.SensorId == sensorInformation.SensorId
-                                                                                                            && m.MeterId == sensorInformation.MeterId
-                                                                                                            && m.Value == meter.Value);
             var currentDate = DateTime.Now;
-            if (waterMeter is null)
+            WaterMeter? lastWaterMeter = await dbContext.WaterMeters
+                                                    .Where(m => m.SensorId == sensorInformation.SensorId
+                                                                                && m.MeterId == sensorInformation.MeterId)
+                                                    .OrderByDescending(w => w.ToTimestamp)
+                                                    .ThenByDescending(w => w.FromTimestamp)
+                                                    .FirstOrDefaultAsync();
+
+            switch (lastWaterMeter)
             {
-                // Add new
-                WaterMeter? lastWaterMeter = await dbContext.WaterMeters.Where(m => m.SensorId == sensorInformation.SensorId
-                                                                                                    && m.MeterId == sensorInformation.MeterId)
-                                                                        .OrderByDescending(w => w.ToTimestamp)
-                                                                        .ThenByDescending(w => w.FromTimestamp)
-                                                                        .FirstOrDefaultAsync();
-                if (lastWaterMeter is null)
-                {
-                    var exists = await dbContext.WaterMeters.AnyAsync(m => m.SensorId == sensorInformation.SensorId
-                                                                                                && m.MeterId == sensorInformation.MeterId);
-                    if (exists)
+                case not null when lastWaterMeter.Value == meter.Value:
+                    // Update ToTimestamp of the last meter with the same value 
+                    lastWaterMeter.StallId = sensorInformation.StallId;
+                    lastWaterMeter.StallCode = sensorInformation.StallCode;
+                    lastWaterMeter.ToTimestamp = currentDate;
+
+                    await dbContext.SaveChangesAsync();
+                    return;
+                case not null:
                     {
-                        await InsertMeterCanNotGetPreviousValue(dbContext, meter, sensorInformation);
+                        lastWaterMeter.ToTimestamp = currentDate;
+
+                        var waterMeter = new WaterMeter()
+                        {
+                            StallId = sensorInformation.StallId,
+                            StallCode = sensorInformation.StallCode,
+                            SensorId = sensorInformation.SensorId.Value,
+                            SensorCode = sensorInformation.SensorCode,
+                            MeterId = sensorInformation.MeterId.Value,
+                            MeterCode = sensorInformation.MeterCode,
+                            Value = meter.Value,
+                            Raw = meter.Raw,
+                            Pre = meter.Pre,
+                            Error = meter.Error,
+                            Rate = meter.Rate,
+                            FromTimestamp = currentDate,
+                            ToTimestamp = currentDate
+                        };
+                        dbContext.Add(waterMeter);
+
+                        await dbContext.SaveChangesAsync();
                         return;
                     }
-                }
-                else
-                {
-                    lastWaterMeter.ToTimestamp = currentDate;
-                }
+                default:
+                    {
+                        // For debug
+                        // In some rare case, GetLastWaterMeter query has error even meter exists. Insert MeterErrors
+                        var exists = await dbContext.WaterMeters.AnyAsync(m => m.SensorId == sensorInformation.SensorId
+                                                                                                    && m.MeterId == sensorInformation.MeterId);
+                        if (exists)
+                        {
+                            await InsertMeterCanNotGetPreviousValue(dbContext, meter, sensorInformation);
+                            return;
+                        }
 
-                waterMeter = new WaterMeter()
-                {
-                    StallId = sensorInformation.StallId,
-                    StallCode = sensorInformation.StallCode,
-                    SensorId = sensorInformation.SensorId.Value,
-                    SensorCode = sensorInformation.SensorCode,
-                    MeterId = sensorInformation.MeterId.Value,
-                    MeterCode = sensorInformation.MeterCode,
-                    Value = meter.Value,
-                    Raw = meter.Raw,
-                    Pre = meter.Pre,
-                    Error = meter.Error,
-                    Rate = meter.Rate,
-                    FromTimestamp = currentDate,
-                    ToTimestamp = currentDate
-                };
-                dbContext.Add(waterMeter);
-            }
-            else
-            {
-                // Update -> only update ToTimestamp
-                waterMeter.StallId = sensorInformation.StallId;
-                waterMeter.StallCode = sensorInformation.StallCode;
-                waterMeter.ToTimestamp = currentDate;
-            }
+                        // When there is not any meter value for this sensor exists
+                        var waterMeter = new WaterMeter()
+                        {
+                            StallId = sensorInformation.StallId,
+                            StallCode = sensorInformation.StallCode,
+                            SensorId = sensorInformation.SensorId.Value,
+                            SensorCode = sensorInformation.SensorCode,
+                            MeterId = sensorInformation.MeterId.Value,
+                            MeterCode = sensorInformation.MeterCode,
+                            Value = meter.Value,
+                            Raw = meter.Raw,
+                            Pre = meter.Pre,
+                            Error = meter.Error,
+                            Rate = meter.Rate,
+                            FromTimestamp = currentDate,
+                            ToTimestamp = currentDate
+                        };
+                        dbContext.Add(waterMeter);
 
-            await dbContext.SaveChangesAsync();
+                        await dbContext.SaveChangesAsync();
+                        return;
+                    }
+            }
         }
 
         private static async Task InsertValueIsNotCorrectError(AppDbContext dbContext, SensorInformation sensorInformation)

@@ -175,58 +175,83 @@ namespace SensorBackgroundJobs.Jobs
 
         private async Task InsertGasMeter(AppDbContext dbContext, MqttMeter meter, SensorInformation sensorInformation)
         {
-            GasMeter? gasMeter = await dbContext.GasMeters.FirstOrDefaultAsync(m => m.SensorId == sensorInformation.SensorId
-                                                                                                            && m.MeterId == sensorInformation.MeterId
-                                                                                                            && m.Value == meter.Value);
             var currentDate = DateTime.Now;
-            if (gasMeter is null)
+            GasMeter? lastGasMeter = await dbContext.GasMeters.Where(m => m.SensorId == sensorInformation.SensorId
+                                                                                        && m.MeterId == sensorInformation.MeterId)
+                                                                    .OrderByDescending(w => w.ToTimestamp)
+                                                                    .ThenByDescending(w => w.FromTimestamp)
+                                                                    .FirstOrDefaultAsync();
+
+            switch (lastGasMeter)
             {
-                GasMeter? lastGasMeter = await dbContext.GasMeters.Where(m => m.SensorId == sensorInformation.SensorId
-                                                                                            && m.MeterId == sensorInformation.MeterId)
-                                                                        .OrderByDescending(w => w.ToTimestamp)
-                                                                        .ThenByDescending(w => w.FromTimestamp)
-                                                                        .FirstOrDefaultAsync();
-                if (lastGasMeter is null)
-                {
-                    var exists = await dbContext.GasMeters.AnyAsync(m => m.SensorId == sensorInformation.SensorId
-                                                                                            && m.MeterId == sensorInformation.MeterId);
-                    if (exists)
+                case not null when lastGasMeter.Value == meter.Value:
+                    // Update ToTimestamp of the last meter with the same value 
+                    lastGasMeter.StallId = sensorInformation.StallId;
+                    lastGasMeter.StallCode = sensorInformation.StallCode;
+                    lastGasMeter.ToTimestamp = currentDate;
+
+                    await dbContext.SaveChangesAsync();
+                    return;
+                case not null:
                     {
-                        await InsertMeterCanNotGetPreviousValue(dbContext, meter, sensorInformation);
+                        lastGasMeter.ToTimestamp = currentDate;
+
+                        var gasMeter = new GasMeter()
+                        {
+                            StallId = sensorInformation.StallId,
+                            StallCode = sensorInformation.StallCode,
+                            SensorId = sensorInformation.SensorId.Value,
+                            SensorCode = sensorInformation.SensorCode,
+                            MeterId = sensorInformation.MeterId.Value,
+                            MeterCode = sensorInformation.MeterCode,
+                            Value = meter.Value,
+                            Raw = meter.Raw,
+                            Pre = meter.Pre,
+                            Error = meter.Error,
+                            Rate = meter.Rate,
+                            FromTimestamp = currentDate,
+                            ToTimestamp = currentDate
+                        };
+                        dbContext.Add(gasMeter);
+
+                        await dbContext.SaveChangesAsync();
                         return;
                     }
-                }
-                else
-                {
-                    lastGasMeter.ToTimestamp = currentDate;
-                }
+                default:
+                    {
+                        // For debug
+                        // In some rare case, GetLastGasMeter query has error even meter exists. Insert MeterErrors
+                        var exists = await dbContext.GasMeters.AnyAsync(m => m.SensorId == sensorInformation.SensorId
+                                                                                            && m.MeterId == sensorInformation.MeterId);
+                        if (exists)
+                        {
+                            await InsertMeterCanNotGetPreviousValue(dbContext, meter, sensorInformation);
+                            return;
+                        }
 
-                gasMeter = new GasMeter()
-                {
-                    StallId = sensorInformation.StallId,
-                    StallCode = sensorInformation.StallCode,
-                    SensorId = sensorInformation.SensorId.Value,
-                    SensorCode = sensorInformation.SensorCode,
-                    MeterId = sensorInformation.MeterId.Value,
-                    MeterCode = sensorInformation.MeterCode,
-                    Value = meter.Value,
-                    Raw = meter.Raw,
-                    Pre = meter.Pre,
-                    Error = meter.Error,
-                    Rate = meter.Rate,
-                    FromTimestamp = currentDate,
-                    ToTimestamp = currentDate
-                };
-                dbContext.Add(gasMeter);
-            }
-            else
-            {
-                gasMeter.StallId = sensorInformation.StallId;
-                gasMeter.StallCode = sensorInformation.StallCode;
-                gasMeter.ToTimestamp = currentDate;
-            }
+                        // When there is not any meter value for this sensor exists
+                        var gasMeter = new GasMeter()
+                        {
+                            StallId = sensorInformation.StallId,
+                            StallCode = sensorInformation.StallCode,
+                            SensorId = sensorInformation.SensorId.Value,
+                            SensorCode = sensorInformation.SensorCode,
+                            MeterId = sensorInformation.MeterId.Value,
+                            MeterCode = sensorInformation.MeterCode,
+                            Value = meter.Value,
+                            Raw = meter.Raw,
+                            Pre = meter.Pre,
+                            Error = meter.Error,
+                            Rate = meter.Rate,
+                            FromTimestamp = currentDate,
+                            ToTimestamp = currentDate
+                        };
+                        dbContext.Add(gasMeter);
 
-            await dbContext.SaveChangesAsync();
+                        await dbContext.SaveChangesAsync();
+                        return;
+                    }
+            }
         }
 
         private static async Task InsertValueIsNotCorrectError(AppDbContext dbContext, SensorInformation sensorInformation)
